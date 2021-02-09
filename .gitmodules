@@ -1,0 +1,3 @@
+[submodule "other/rainman"]
+	path = other/rainman
+	url = git@github.com:supercmmetry/rainman
