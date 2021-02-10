@@ -12,6 +12,6 @@ add_executable(interlaced_ans
         src/opencl/cl_helper.cpp
         src/errors/opencl.h
         src/opencl/freq_dist.h
-        src/opencl/freq_dist.cpp)
+        src/opencl/freq_dist.cpp src/opencl/interlaced_rans64.h src/opencl/interlaced_rans64.cpp)
 
 target_link_libraries(interlaced_ans PUBLIC rainman OpenCL)
