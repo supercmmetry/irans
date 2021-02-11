@@ -3,6 +3,7 @@
 #include <opencl/freq_dist.h>
 #include <opencl/interlaced_rans64.h>
 #include <chrono>
+#include <io/writer.h>
 
 int main() {
     interlaced_ans::opencl::DeviceProvider::load_devices<CL_DEVICE_TYPE_GPU>();
@@ -21,5 +22,10 @@ int main() {
     codec.normalize();
     codec.create_ctable();
 
-    codec.opencl_encode(data, data.size() / 1024);
+    auto output = codec.opencl_encode(data, data.size() / 1024);
+
+    interlaced_ans::Writer writer("sample.irans");
+
+    writer.write(ftable);
+    writer.write(output);
 }

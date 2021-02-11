@@ -1,4 +1,5 @@
 #include "interlaced_rans64.h"
+#include <vector>
 #include "cl_helper.h"
 
 using namespace interlaced_ans;
@@ -58,7 +59,7 @@ encoder_output Rans64Codec::opencl_encode(const rainman::ptr<uint8_t> &input, ui
 
     auto output = rainman::ptr<uint32_t>(output_size);
     auto output_ns = rainman::ptr<uint64_t>(true_size);
-    auto input_resiudes = rainman::ptr<uint64_t>(true_size);
+    auto input_residues = rainman::ptr<uint64_t>(true_size);
 
     auto queue = cl::CommandQueue(context, device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE);
     queue.enqueueNDRangeKernel(kernel, cl::NDRange(0), cl::NDRange(global_size), cl::NDRange(local_size));
@@ -66,11 +67,18 @@ encoder_output Rans64Codec::opencl_encode(const rainman::ptr<uint8_t> &input, ui
 
     queue.enqueueReadBuffer(buf_output, CL_FALSE, 0, output_size * sizeof(uint32_t), output.pointer());
     queue.enqueueReadBuffer(buf_output_ns, CL_FALSE, 0, true_size * sizeof(uint64_t), output_ns.pointer());
-    queue.enqueueReadBuffer(buf_input_residues, CL_FALSE, 0, true_size * sizeof(uint64_t), input_resiudes.pointer());
+    queue.enqueueReadBuffer(buf_input_residues, CL_FALSE, 0, true_size * sizeof(uint64_t), input_residues.pointer());
 
     queue.finish();
 
-    return rainman::ptr<uint8_t>();
+    auto residual_output = encode_residues(input, input_residues, stride_size);
+    return encoder_output{
+        .cl_outputs = output,
+        .output_ns = output_ns,
+        .residual_output = residual_output,
+        .input_residues = input_residues,
+    };
+
 }
 
 rainman::ptr<uint8_t> Rans64Codec::opencl_decode(const rainman::ptr<uint8_t> &input) {
@@ -108,4 +116,50 @@ void Rans64Codec::create_ctable() {
         bs += _ftable[i];
         _ctable[i + 1] = bs;
     }
+}
+
+rainman::ptr<uint32_t> Rans64Codec::encode_residues(
+        const rainman::ptr<uint8_t> &input,
+        const rainman::ptr<uint64_t> &input_residues,
+        uint64_t stride_size
+) {
+    const uint64_t lower_bound = 1 << 31;
+    const uint64_t up_prefix = (lower_bound >> RANS64_SCALE) << 32;
+
+    uint64_t state = lower_bound;
+    std::vector<uint32_t> out;
+
+    for (uint64_t i = 0; i < input_residues.size(); i++) {
+        uint64_t residue = input_residues[i];
+        if (residue == 0) {
+            continue;
+        }
+
+        int64_t start_index = stride_size * i;
+        int64_t end_index = start_index + residue - 1;
+
+        for (int64_t j = end_index; j >= start_index; j--) {
+            auto symbol = input[j];
+            auto ls = _ftable[symbol];
+            auto bs = _ctable[symbol];
+            uint64_t upper_bound = up_prefix * symbol;
+
+            if (state >= upper_bound) {
+                out.push_back(state);
+                state >>= 32;
+            }
+
+            state = ((state / ls) << RANS64_SCALE) + bs + (state % ls);
+        }
+    }
+
+    out.push_back(state);
+    out.push_back(state >> 32);
+
+    auto output = rainman::ptr<uint32_t>(out.size());
+    for (uint64_t i = 0; i < out.size(); i++) {
+        output[i] = out[i];
+    }
+
+    return output;
 }

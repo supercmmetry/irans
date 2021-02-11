@@ -19,6 +19,12 @@ namespace interlaced_ans {
 
         void register_kernel();
 
+        rainman::ptr<uint32_t> encode_residues(
+                const rainman::ptr<uint8_t> &input,
+                const rainman::ptr<uint64_t> &input_residues,
+                uint64_t stride_size
+        );
+
     public:
         explicit Rans64Codec(const rainman::ptr<uint64_t> &ftable) : _ftable(ftable) {}
 
