@@ -17,7 +17,7 @@ namespace interlaced_ans::opencl {
     public:
         static cl::Program get(const std::string &kernel);
 
-        static void register_kernel(const std::string &kernel, const std::string &src);
+        static void register_program(const std::string &name, const std::string &src);
 
         static void compile(const std::string &kernel, const cl::Device &device);
 

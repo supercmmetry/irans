@@ -18,6 +18,8 @@ namespace interlaced_ans {
 
         void write(const encoder_output& output);
 
+        void write(const rainman::ptr<uint8_t> &data);
+
         ~Writer();
     };
 }

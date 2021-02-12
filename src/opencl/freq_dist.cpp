@@ -3,7 +3,7 @@
 using namespace interlaced_ans;
 
 void FrequencyDistribution::register_kernel() {
-    opencl::ProgramProvider::register_kernel("freq_dist",
+    opencl::ProgramProvider::register_program("freq_dist",
 
 #include "freq_dist.cl"
 

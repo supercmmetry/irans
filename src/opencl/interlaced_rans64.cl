@@ -5,61 +5,64 @@ R"(
  */
 
 #define SCALE 24
+#define u64 unsigned long int
+#define u8 unsigned char
+#define u32 unsigned int
 	
 __kernel void encode(
-	__global unsigned char *input,
-	const unsigned long int input_n,
-	__global unsigned long int *ftable,
-	__global unsigned long int *ctable,
-	__global unsigned int *output,
-	__global unsigned long int *output_ns,
-	__global unsigned long int *input_residues,
-	const unsigned long int output_size,
-	const unsigned long int n,
-	const unsigned long int stride_size
+	__global u8 *input,
+	const u64 input_n,
+	__global u64 *ftable,
+	__global u64 *ctable,
+	__global u32 *output,
+	__global u64 *output_ns,
+	__global u64 *input_residues,
+	const u64 output_size,
+	const u64 n,
+	const u64 stride_size
 ) {
-	unsigned long int tid = get_global_id(0);
+	u64 tid = get_global_id(0);
 	if (tid >= n) {
 		return;
 	}
 
-	unsigned long int input_start_index = tid * stride_size;
-	unsigned long int input_end_index = input_start_index + stride_size - 1;
+	u64 input_start_index = tid * stride_size;
+	u64 input_end_index = input_start_index + stride_size - 1;
 	
 	if (input_end_index >= input_n) {
 		input_end_index = input_n - 1;
 	}
 	
-	unsigned long int input_size = input_end_index - input_start_index + 1;
+	u64 input_size = input_end_index - input_start_index + 1;
 	
-	unsigned long int output_start_index = tid * output_size;
-	unsigned long int output_end_index = output_start_index + output_size - 1;
+	u64 output_unit_size = stride_size >> 2;
+	u64 output_start_index = tid * output_unit_size;
+	u64 output_end_index = output_start_index + output_unit_size - 1;
 
-	unsigned char *input_ptr = input + input_start_index;
-	unsigned int *output_ptr = output + output_start_index;
-	unsigned long int *output_ns_ptr = output_ns + tid;
-	unsigned long int *input_residue_ptr = input_residues + tid;
+	u32 *output_ptr = output + output_start_index;
+	u64 *output_ns_ptr = output_ns + tid;
+	u64 *input_residue_ptr = input_residues + tid;
 	
-	unsigned long int input_index = input_end_index;
-	unsigned long int counter = 0;
+	u64 input_index = input_end_index;
+	u64 counter = 0;
 	
 	
-	const unsigned long int lower_bound = 1 << 31;
-	const unsigned long int up_prefix = (lower_bound >> SCALE) << 32;
-	const unsigned long int mask = (1 << SCALE) - 1;
+	const u64 lower_bound = 1 << 31;
+	const u64 up_prefix = (lower_bound >> SCALE) << 32;
+	const u64 mask = (1 << SCALE) - 1;
 	
-	unsigned long int state = lower_bound;
-	unsigned long int state_counter = 0;
+	u64 state = lower_bound;
+	u64 state_counter = 0;
 	
 	while (true) {
 		if (counter == input_size) {
 			break;
 		}
 		
-		unsigned char symbol = input_ptr[input_index];
-		unsigned long int ls = ftable[symbol];
-		unsigned long int bs = ctable[symbol];
-		unsigned long int upper_bound = ls * up_prefix;
+		u8 symbol = input[input_index];
+		u64 ls = ftable[symbol];
+		u64 bs = ctable[symbol];
+		u64 upper_bound = ls * up_prefix;
 		
 		if (state >= upper_bound) {
 			output_ptr[state_counter] = state;
@@ -71,7 +74,7 @@ __kernel void encode(
 		counter++;
 		input_index--;
 		
-		if (state_counter == output_size - 2) {
+		if (state_counter == output_unit_size - 2) {
 			break;
 		}
 	}
@@ -81,6 +84,93 @@ __kernel void encode(
 	output_ptr[state_counter] = state;
 	output_ptr[state_counter + 1] = state >> 32;
 	*output_ns_ptr = state_counter + 2;
+}
+
+
+
+u8 inv_bs(u64 *ctable, u64 bs) {
+	u8 symbol = 0xff;
+	
+	for (int i = 0; i < 0x100; i++) {
+		if (ctable[i] > bs) {
+			symbol = i - 1;
+			break;
+		}
+	}
+	
+	return symbol;
+}
+
+
+__kernel void decode(
+	__global u8 *input,
+	const u64 input_n,
+	__global u64 *ftable,
+	__global u64 *ctable,
+	__global u32 *output,
+	__global u64 *output_ns,
+	__global u64 *input_residues,
+	const u64 output_size,
+	const u64 n,
+	const u64 stride_size
+) {
+	u64 tid = get_global_id(0);
+	if (tid >= n) {
+		return;
+	}
+
+	u64 input_start_index = tid * stride_size;
+	u64 input_end_index = input_start_index + stride_size - 1;
+	
+	if (input_end_index >= input_n) {
+		input_end_index = input_n - 1;
+	}
+	
+	u64 input_size = input_end_index - input_start_index + 1;
+	
+	u64 output_unit_size = stride_size >> 2;
+	u64 output_start_index = tid * output_unit_size;
+	u64 output_end_index = output_start_index + output_ns[tid] - 1;
+
+	u32 *output_ptr = output + output_start_index;
+	u64 *output_ns_ptr = output_ns + tid;
+	u64 *input_residue_ptr = input_residues + tid;
+	
+	u64 input_index = input_start_index + *input_residue_ptr;
+	input_size = input_size - *input_residue_ptr;
+	u64 counter = 0;
+	
+	
+	const u64 lower_bound = 1 << 31;
+	const u64 up_prefix = (lower_bound >> SCALE) << 32;
+	const u64 mask = (1 << SCALE) - 1;
+	
+	u64 state = output[output_end_index];
+	state = (state << 32) | output[output_end_index - 1];
+	u64 state_counter = output_end_index - 2;
+	
+	while (true) {
+		if (counter == input_size) {
+			break;
+		}
+		
+		u64 bs = state & mask;
+		u8 symbol = inv_bs(ctable, bs);
+		
+		input[input_index] = symbol;
+		u64 ls = ftable[symbol];
+		bs = ctable[symbol];
+		
+		state = (ls * (state >> SCALE)) + (state & mask) - bs;
+		
+		if (state < lower_bound) {
+			state = (state << 32) | output[state_counter];
+			state_counter--;
+		}
+		
+		counter++;
+		input_index++;
+	}
 }
 
 )"

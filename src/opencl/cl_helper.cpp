@@ -30,14 +30,14 @@ void ProgramProvider::clear() {
     _mutex.unlock();
 }
 
-void ProgramProvider::register_kernel(const std::string &kernel, const std::string &src) {
+void ProgramProvider::register_program(const std::string &name, const std::string &src) {
     _mutex.lock();
-    if (!_program_map.contains(kernel)) {
+    if (!_program_map.contains(name)) {
         cl::Context context(DeviceProvider::get());
         auto program = cl::Program(context, src);
         program.build(INTERLACED_ANS_OPENCL_BUILD_OPTIONS);
-        _program_map[kernel] = program;
-        _src_map[kernel] = src;
+        _program_map[name] = program;
+        _src_map[name] = src;
     }
     _mutex.unlock();
 }

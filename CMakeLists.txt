@@ -18,6 +18,9 @@ add_executable(interlaced_ans
         src/opencl/interlaced_rans64.h
         src/opencl/interlaced_rans64.cpp
         src/io/writer.h
-        src/io/writer.cpp)
+        src/io/writer.cpp
+        src/io/reader.h
+        src/io/reader.cpp)
 
 target_link_libraries(interlaced_ans PUBLIC rainman OpenCL)
+target_compile_definitions(interlaced_ans PUBLIC CL_HPP_ENABLE_EXCEPTIONS)
