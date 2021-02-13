@@ -65,3 +65,10 @@ encoder_output Reader::read_encoder_output() {
 
     return output;
 }
+
+rainman::ptr<uint8_t> Reader::read_data(uint64_t size) {
+    auto tmp_data = rainman::ptr<uint8_t>(size);
+
+    std::fread(tmp_data.pointer(), sizeof(uint8_t), tmp_data.size(), _file);
+    return tmp_data;
+}

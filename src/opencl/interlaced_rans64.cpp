@@ -1,5 +1,6 @@
 #include "interlaced_rans64.h"
 #include <vector>
+#include <iostream>
 #include "cl_helper.h"
 
 using namespace interlaced_ans;
@@ -20,6 +21,12 @@ encoder_output Rans64Codec::opencl_encode(const rainman::ptr<uint8_t> &input, ui
     auto kernel = opencl::KernelProvider::get("interlaced_rans64", "encode");
     auto context = kernel.getInfo<CL_KERNEL_CONTEXT>();
     auto device = context.getInfo<CL_CONTEXT_DEVICES>().front();
+
+    if (_verbose) {
+        std::cout << "[OPENCL]\t\tRunning 'interlaced_rans64.encode' kernels on device: "
+                  << device.getInfo<CL_DEVICE_NAME>() << std::endl;
+    }
+
     uint64_t local_size = kernel.getWorkGroupInfo<CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(device);
 
     uint64_t n = input.size();
@@ -173,6 +180,12 @@ rainman::ptr<uint8_t> Rans64Codec::opencl_decode(const encoder_output &output) {
     auto kernel = opencl::KernelProvider::get("interlaced_rans64", "decode");
     auto context = kernel.getInfo<CL_KERNEL_CONTEXT>();
     auto device = context.getInfo<CL_CONTEXT_DEVICES>().front();
+
+    if (_verbose) {
+        std::cout << "[OPENCL]\t\tRunning 'interlaced_rans64.decode' kernels on device: "
+                  << device.getInfo<CL_DEVICE_NAME>() << std::endl;
+    }
+
     uint64_t local_size = kernel.getWorkGroupInfo<CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(device);
 
     uint64_t n = output.input_size;

@@ -19,6 +19,7 @@ namespace interlaced_ans {
     private:
         rainman::ptr<uint64_t> _ftable;
         rainman::ptr<uint64_t> _ctable;
+        bool _verbose;
 
         void register_kernel();
 
@@ -38,7 +39,10 @@ namespace interlaced_ans {
         uint8_t inv_bs(uint64_t bs);
 
     public:
-        explicit Rans64Codec(const rainman::ptr<uint64_t> &ftable) : _ftable(ftable) {}
+        explicit Rans64Codec(
+                const rainman::ptr<uint64_t> &ftable,
+                bool verbose = false
+        ) : _ftable(ftable), _verbose(verbose) {}
 
         void normalize();
 

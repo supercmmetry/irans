@@ -1,4 +1,6 @@
 #include "freq_dist.h"
+#include <iostream>
+
 
 using namespace interlaced_ans;
 
@@ -16,6 +18,12 @@ rainman::ptr<uint64_t> FrequencyDistribution::opencl_freq_dist(const rainman::pt
     auto kernel = opencl::KernelProvider::get("freq_dist");
     auto context = kernel.getInfo<CL_KERNEL_CONTEXT>();
     auto device = context.getInfo<CL_CONTEXT_DEVICES>().front();
+
+    if (_verbose) {
+        std::cout << "[OPENCL]\t\tRunning 'freq_dist.run' kernels on device: "
+                  << device.getInfo<CL_DEVICE_NAME>() << std::endl;
+    }
+
     uint64_t local_size = kernel.getWorkGroupInfo<CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(device);
 
     uint64_t n = input.size();

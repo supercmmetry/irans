@@ -47,7 +47,7 @@ __kernel void encode(
 	u64 counter = 0;
 	
 	
-	const u64 lower_bound = 1ull << 31;
+	const u64 lower_bound = 1ul << 31;
 	const u64 up_prefix = (lower_bound >> SCALE) << 32;
 	
 	u64 state = lower_bound;
@@ -138,8 +138,8 @@ __kernel void decode(
 	
 	u64 counter = 0;
 	
-	const u64 lower_bound = 1ull << 31;
-	const u64 mask = (1ull << SCALE) - 1;
+	const u64 lower_bound = 1ul << 31;
+	const u64 mask = (1ul << SCALE) - 1;
 	
 	u64 state = output[output_end_index];
 	state = (state << 32) | output[output_end_index - 1];

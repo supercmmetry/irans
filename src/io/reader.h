@@ -20,6 +20,8 @@ namespace interlaced_ans {
 
         encoder_output read_encoder_output();
 
+        rainman::ptr<uint8_t> read_data(uint64_t size);
+
         ~Reader();
     };
 }

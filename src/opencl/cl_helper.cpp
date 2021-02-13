@@ -1,5 +1,6 @@
 #include "cl_helper.h"
 #include <errors/opencl.h>
+#include <iostream>
 
 #define INTERLACED_ANS_OPENCL_BUILD_OPTIONS "-cl-std=CL2.0"
 
@@ -33,9 +34,29 @@ void ProgramProvider::clear() {
 void ProgramProvider::register_program(const std::string &name, const std::string &src) {
     _mutex.lock();
     if (!_program_map.contains(name)) {
-        cl::Context context(DeviceProvider::get());
+
+        auto device = DeviceProvider::get();
+        cl::Context context(device);
         auto program = cl::Program(context, src);
-        program.build(INTERLACED_ANS_OPENCL_BUILD_OPTIONS);
+        try {
+            program.build(INTERLACED_ANS_OPENCL_BUILD_OPTIONS);
+        } catch (cl::Error &e) {
+            if (e.err() == CL_BUILD_PROGRAM_FAILURE) {
+                // Check the build status
+                cl_build_status status = program.getBuildInfo<CL_PROGRAM_BUILD_STATUS>(device);
+                if (status != CL_BUILD_ERROR) {
+                    throw e;
+                }
+
+                // Get the build log
+                std::string buildlog = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
+                std::cerr << "Build log " << ":" << std::endl
+                          << buildlog << std::endl;
+            } else {
+                throw e;
+            }
+        }
+
         _program_map[name] = program;
         _src_map[name] = src;
     }
