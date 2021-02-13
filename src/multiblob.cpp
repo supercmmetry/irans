@@ -27,6 +27,7 @@ void MultiBlobCodec::compress_file(const std::string &src, const std::string &ds
     uint64_t blob_count = (file_size / _blob_size) + (file_size % _blob_size != 0);
 
     uint64_t stride_size = _blob_size / _n_kernels;
+    double total_time = 0.0;
 
     auto clock = std::chrono::high_resolution_clock();
     auto start = clock.now();
@@ -52,6 +53,8 @@ void MultiBlobCodec::compress_file(const std::string &src, const std::string &ds
         }
 
         auto tmp_data = reader.read_data(curr_blob_size);
+
+        auto start_i = clock.now();
         auto freq_dist = FrequencyDistribution(_verbose);
 
         auto ftable = freq_dist.opencl_freq_dist(tmp_data, stride_size);
@@ -61,12 +64,23 @@ void MultiBlobCodec::compress_file(const std::string &src, const std::string &ds
 
         auto output = codec.opencl_encode(tmp_data, stride_size);
 
+        auto diff = ((double) (clock.now() - start_i).count()) / 1000000000.0;
+        if (_verbose) {
+            std::cout << "[MULTIBLOB]\t\tFinished compressing blob (" << counter << ") in " <<
+                      diff << "s" << std::endl;
+
+            total_time += diff;
+        }
+
         writer.write(ftable);
         writer.write(output);
     }
 
     if (_verbose) {
         std::cout << "[MULTIBLOB]\t\tFinished compressing " << blob_count << " blob(s) in " <<
+                  total_time << "s" << std::endl;
+
+        std::cout << "[MULTIBLOB]\t\tOperation finished in " <<
                   ((double) (clock.now() - start).count()) / 1000000000.0 << "s" << std::endl;
     }
 }
@@ -92,6 +106,7 @@ void MultiBlobCodec::decompress_file(const std::string &src, const std::string &
 
     uint64_t blob_count = reader.read_u64();
     uint64_t counter = 0;
+    double total_time = 0.0;
 
     while (blob_count--) {
         if (_verbose) {
@@ -101,16 +116,29 @@ void MultiBlobCodec::decompress_file(const std::string &src, const std::string &
         auto ftable = reader.read_ftable();
         auto output = reader.read_encoder_output();
 
+        auto start_i = clock.now();
+
         auto codec = Rans64Codec(ftable, _verbose);
         codec.create_ctable();
 
         auto tmp_data = codec.opencl_decode(output);
+
+        auto diff = ((double) (clock.now() - start_i).count()) / 1000000000.0;
+        if (_verbose) {
+            std::cout << "[MULTIBLOB]\t\tFinished decompressing blob (" << counter << ") in " <<
+                      diff << "s" << std::endl;
+
+            total_time += diff;
+        }
 
         writer.write(tmp_data);
     }
 
     if (_verbose) {
         std::cout << "[MULTIBLOB]\t\tFinished decompressing " << counter << " blob(s) in " <<
+                  total_time << "s" << std::endl;
+
+        std::cout << "[MULTIBLOB]\t\tOperation finished in " <<
                   ((double) (clock.now() - start).count()) / 1000000000.0 << "s" << std::endl;
     }
 }
