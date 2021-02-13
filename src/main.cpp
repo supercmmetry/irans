@@ -21,9 +21,9 @@ int main(int argc, const char *argv[]) {
             .required(false);
 
     parser.add_argument()
-            .names({"--preferred-gpu"})
-            .description("Preferred GPU to use for codec operations."
-                         " Note that this must match the OpenCL device name of the given GPU.")
+            .names({"-P", "--preferreddevice"})
+            .description("Preferred OpenCL device to use for codec operations."
+                         " Note that this must match the OpenCL device name of the given hardware.")
             .required(false);
 
     parser.add_argument()
@@ -32,12 +32,12 @@ int main(int argc, const char *argv[]) {
             .required(false);
 
     parser.add_argument()
-            .names({"-b", "--blob-size"})
+            .names({"-b", "--blobsize"})
             .description("Blob size for codec operations")
             .required(false);
 
     parser.add_argument()
-            .names({"--max-memory"})
+            .names({"-M", "--maxmemory"})
             .description("Set host memory-usage limit")
             .required(false);
 
@@ -74,6 +74,7 @@ int main(int argc, const char *argv[]) {
     std::string mode = "c";
     std::string input_file;
     std::string output_file;
+    std::string preferred_device;
     uint64_t jobs = 64;
     uint64_t blob_size = 104857600;
     uint64_t max_mem = 1073741824;
@@ -90,14 +91,17 @@ int main(int argc, const char *argv[]) {
     if (parser.exists("o")) {
         output_file = parser.get<std::string>("o");
     }
+    if (parser.exists("P")) {
+        preferred_device = parser.get<std::string>("P");
+    }
     if (parser.exists("j")) {
         jobs = parser.get<uint64_t>("j");
     }
     if (parser.exists("b")) {
         blob_size = parser.get<uint64_t>("b");
     }
-    if (parser.exists("max-memory")) {
-        max_mem = parser.get<uint64_t>("max-memory");
+    if (parser.exists("M")) {
+        max_mem = parser.get<uint64_t>("M");
     }
 
     // Set memory limit on host-machine
@@ -110,6 +114,9 @@ int main(int argc, const char *argv[]) {
     } else {
         interlaced_ans::opencl::DeviceProvider::load_devices<CL_DEVICE_TYPE_ALL>();
     }
+
+    // Set opencl preferred device.
+    interlaced_ans::opencl::DeviceProvider::set_preferred_device(preferred_device);
 
     auto codec = interlaced_ans::MultiBlobCodec(jobs, blob_size, verbose);
 

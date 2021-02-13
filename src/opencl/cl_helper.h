@@ -29,6 +29,7 @@ namespace interlaced_ans::opencl {
         static std::vector<cl::Device> _devices;
         static std::mutex _mutex;
         static uint64_t _device_index;
+        static std::string _preferred_device_name;
     public:
         template<uint32_t device_type = CL_DEVICE_TYPE_ALL>
         static void load_devices() {
@@ -55,7 +56,9 @@ namespace interlaced_ans::opencl {
                 throw OpenCLErrors::InvalidOperationException("No devices were loaded");
             }
             cl::Device device = _devices[_device_index];
-            _device_index = (_device_index + 1) % _devices.size();
+            if (_preferred_device_name.empty()) {
+                _device_index = (_device_index + 1) % _devices.size();
+            }
             _mutex.unlock();
             return device;
         }
@@ -65,6 +68,32 @@ namespace interlaced_ans::opencl {
             bool v = _devices.empty();
             _mutex.unlock();
             return v;
+        }
+
+        static void set_preferred_device(const std::string &dev_name) {
+            _preferred_device_name = dev_name;
+            bool not_found_device = true;
+            _mutex.lock();
+            if (_devices.empty()) {
+                _mutex.unlock();
+                throw OpenCLErrors::InvalidOperationException("No devices were loaded");
+            }
+            for (int i = 0; i < _devices.size(); i++) {
+                auto device = _devices[i];
+                std::string dname = device.getInfo<CL_DEVICE_NAME>();
+
+                if (dname.find(_preferred_device_name) != std::string::npos) {
+                    not_found_device = false;
+                    _device_index = i;
+                    break;
+                }
+            }
+
+            if (not_found_device) {
+                _preferred_device_name = "";
+            }
+
+            _mutex.unlock();
         }
     };
 

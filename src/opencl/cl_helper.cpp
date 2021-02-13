@@ -13,6 +13,7 @@ std::mutex ProgramProvider::_mutex;
 std::vector<cl::Device> DeviceProvider::_devices;
 std::mutex DeviceProvider::_mutex;
 uint64_t DeviceProvider::_device_index = 0;
+std::string DeviceProvider::_preferred_device_name;
 
 
 cl::Program ProgramProvider::get(const std::string &kernel) {
