@@ -44,17 +44,22 @@ int main(int argc, const char *argv[]) {
     parser.add_argument()
             .names({"-i", "--input"})
             .description("Path for input file")
-            .required(true);
+            .required(false);
 
     parser.add_argument()
             .names({"-o", "--output"})
             .description("Path for output file")
-            .required(true);
+            .required(false);
 
     parser.add_argument()
             .names({"-m", "--mode"})
             .description("Mode of operation (c for compression, d for decompression)")
-            .required(true);
+            .required(false);
+
+    parser.add_argument()
+            .names({"-l", "--listdevices"})
+            .description("List all available OpenCL devices")
+            .required(false);
 
     parser.enable_help();
 
@@ -69,9 +74,14 @@ int main(int argc, const char *argv[]) {
         return 0;
     }
 
+    if (parser.exists("l")) {
+        interlaced_ans::opencl::DeviceProvider::list_available_devices();
+        return 0;
+    }
+
     bool verbose = parser.exists("v");
     std::string executor = "cpu";
-    std::string mode = "c";
+    std::string mode = "x";
     std::string input_file;
     std::string output_file;
     std::string preferred_device;
@@ -119,6 +129,16 @@ int main(int argc, const char *argv[]) {
     interlaced_ans::opencl::DeviceProvider::set_preferred_device(preferred_device);
 
     auto codec = interlaced_ans::MultiBlobCodec(jobs, blob_size, verbose);
+
+    if (input_file.empty()) {
+        std::cerr << "Source file not provided" << std::endl;
+        return 1;
+    }
+
+    if (output_file.empty()) {
+        std::cerr << "Destination file not provided" << std::endl;
+        return 1;
+    }
 
     if (mode == "c") {
         codec.compress_file(input_file, output_file);

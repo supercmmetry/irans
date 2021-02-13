@@ -7,6 +7,7 @@
 #include <mutex>
 #include <CL/cl2.hpp>
 #include <errors/opencl.h>
+#include <iostream>
 
 namespace interlaced_ans::opencl {
     class ProgramProvider {
@@ -47,6 +48,30 @@ namespace interlaced_ans::opencl {
 
             ProgramProvider::clear();
             _mutex.unlock();
+        }
+
+        static void list_available_devices() {
+            std::vector<cl::Platform> platforms;
+            cl::Platform::get(&platforms);
+
+            std::cout << "List of all available OpenCL devices:" << std::endl << std::endl;
+
+            for (const auto &platform: platforms) {
+                std::vector<cl::Device> platform_devices;
+                platform.getDevices(CL_DEVICE_TYPE_ALL, &platform_devices);
+
+                std::cout << "Platform: " << platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
+
+                for (const auto& device : platform_devices) {
+                    std::cout << "\t- Device: " << device.getInfo<CL_DEVICE_NAME>() << std::endl;
+                    std::cout << "\t\t- Clock Frequency: " << device.getInfo<CL_DEVICE_MAX_CLOCK_FREQUENCY>() << " MHz" << std::endl;
+                    std::cout << "\t\t- Compute units: " << device.getInfo<CL_DEVICE_MAX_COMPUTE_UNITS>() << std::endl;
+                    std::cout << std::endl;
+                }
+                std::cout << std::endl;
+
+                _devices.insert(_devices.end(), platform_devices.begin(), platform_devices.end());
+            }
         }
 
         static cl::Device get() {
