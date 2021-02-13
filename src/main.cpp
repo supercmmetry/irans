@@ -12,7 +12,7 @@ int main() {
     uint64_t size = 10485760;
     auto data = rainman::ptr<uint8_t>(size);
     for (uint64_t i = 0; i < size; i++) {
-        data[i] = i & 0xf;
+        data[i] = i & 0xff;
     }
 
     auto freq_dist = interlaced_ans::FrequencyDistribution();
@@ -42,9 +42,14 @@ int main() {
     auto decoder = interlaced_ans::Rans64Codec(ftable);
     decoder.create_ctable();
 
+    auto clock = std::chrono::high_resolution_clock();
+    auto start = clock.now();
+
     auto decoded = decoder.opencl_decode(output);
 
-    for (int i = 0; i < 20; i++) {
+    std::cout << "Time taken for decoding: " << ((double) (clock.now() - start).count() / 1000000000.0) << " s" << std::endl;
+
+    for (int i = 0; i < 256; i++) {
         std::cout << (int) decoded[i] << std::endl;
     }
 

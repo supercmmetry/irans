@@ -121,7 +121,7 @@ rainman::ptr<uint32_t> Rans64Codec::encode_residues(
         const rainman::ptr<uint64_t> &input_residues,
         uint64_t stride_size
 ) {
-    const uint64_t lower_bound = 1 << 31;
+    const uint64_t lower_bound = 1ull << 31;
     const uint64_t up_prefix = (lower_bound >> RANS64_SCALE) << 32;
 
     uint64_t state = lower_bound;
@@ -138,9 +138,14 @@ rainman::ptr<uint32_t> Rans64Codec::encode_residues(
 
         for (int64_t j = end_index; j >= start_index; j--) {
             auto symbol = input[j];
-            auto ls = _ftable[symbol];
-            auto bs = _ctable[symbol];
-            uint64_t upper_bound = up_prefix * symbol;
+            uint64_t ls = _ftable[symbol];
+            uint64_t bs = _ctable[symbol];
+
+            if (i == input_residues.size() - 1) {
+                printf("");
+            }
+
+            uint64_t upper_bound = up_prefix * ls;
 
             if (state >= upper_bound) {
                 out.push_back(state);
@@ -165,7 +170,7 @@ rainman::ptr<uint32_t> Rans64Codec::encode_residues(
 rainman::ptr<uint8_t> Rans64Codec::opencl_decode(const encoder_output &output) {
     register_kernel();
 
-    auto kernel = opencl::KernelProvider::get("interlaced_rans64", "encode");
+    auto kernel = opencl::KernelProvider::get("interlaced_rans64", "decode");
     auto context = kernel.getInfo<CL_KERNEL_CONTEXT>();
     auto device = context.getInfo<CL_CONTEXT_DEVICES>().front();
     uint64_t local_size = kernel.getWorkGroupInfo<CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE>(device);
@@ -226,15 +231,20 @@ void Rans64Codec::decode_residues(
         const rainman::ptr<uint32_t> &encoded_residues,
         uint64_t stride_size
 ) {
-    const uint64_t lower_bound = 1 << 31;
-    const uint64_t mask = (1 << RANS64_SCALE) - 1;
+    if (encoded_residues.size() < 2) {
+        return;
+    }
 
-    uint64_t state = encoded_residues[1];
-    state = (state << 32) | encoded_residues[0];
+    const uint64_t lower_bound = 1ull << 31;
+    const uint64_t mask = (1ull << RANS64_SCALE) - 1;
 
-    uint64_t state_counter = encoded_residues.size() - 2;
+    uint64_t output_end_index = encoded_residues.size() - 1;
+    uint64_t state = encoded_residues[output_end_index];
+    state = (state << 32) | encoded_residues[output_end_index - 1];
 
-    for (uint64_t i = 0; i < input_residues.size(); i++) {
+    uint64_t state_counter = output_end_index - 2;
+
+    for (int64_t i = input_residues.size() - 1; i >= 0; i--) {
         uint64_t residue = input_residues[i];
         if (residue == 0) {
             continue;

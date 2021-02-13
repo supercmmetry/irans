@@ -47,9 +47,8 @@ __kernel void encode(
 	u64 counter = 0;
 	
 	
-	const u64 lower_bound = 1 << 31;
+	const u64 lower_bound = 1ull << 31;
 	const u64 up_prefix = (lower_bound >> SCALE) << 32;
-	const u64 mask = (1 << SCALE) - 1;
 	
 	u64 state = lower_bound;
 	u64 state_counter = 0;
@@ -132,18 +131,15 @@ __kernel void decode(
 	u64 output_start_index = tid * output_unit_size;
 	u64 output_end_index = output_start_index + output_ns[tid] - 1;
 
-	u32 *output_ptr = output + output_start_index;
-	u64 *output_ns_ptr = output_ns + tid;
-	u64 *input_residue_ptr = input_residues + tid;
+	u64 input_residue = input_residues[tid];
 	
-	u64 input_index = input_start_index + *input_residue_ptr;
-	input_size = input_size - *input_residue_ptr;
+	u64 input_index = input_start_index + input_residue;
+	input_size = input_size - input_residue;
+	
 	u64 counter = 0;
 	
-	
-	const u64 lower_bound = 1 << 31;
-	const u64 up_prefix = (lower_bound >> SCALE) << 32;
-	const u64 mask = (1 << SCALE) - 1;
+	const u64 lower_bound = 1ull << 31;
+	const u64 mask = (1ull << SCALE) - 1;
 	
 	u64 state = output[output_end_index];
 	state = (state << 32) | output[output_end_index - 1];

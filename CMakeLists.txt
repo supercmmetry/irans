@@ -20,7 +20,7 @@ add_executable(interlaced_ans
         src/io/writer.h
         src/io/writer.cpp
         src/io/reader.h
-        src/io/reader.cpp)
+        src/io/reader.cpp src/multiblob.h)
 
 target_link_libraries(interlaced_ans PUBLIC rainman OpenCL)
 target_compile_definitions(interlaced_ans PUBLIC CL_HPP_ENABLE_EXCEPTIONS)
