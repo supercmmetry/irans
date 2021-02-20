@@ -57,7 +57,7 @@ encoder_output Reader::read_encoder_output() {
     }
 
     // Read residual_output
-    uint64_t residual_output_size;
+    uint64_t residual_output_size = 1;
     std::fread(&residual_output_size, sizeof(residual_output_size), 1, _file);
 
     output.residual_output = rainman::ptr<uint32_t>(residual_output_size);

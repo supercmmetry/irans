@@ -107,7 +107,7 @@ void Rans64Codec::normalize() {
 
     // Disperse residues uniformly.
     ssum = mul_factor - ssum;
-    for (int i = 0; ssum > 0; i++, ssum--) {
+    for (int i = 0; ssum > 0; i = (i + 1) & 0xff, ssum--) {
         _ftable[i]++;
     }
 }

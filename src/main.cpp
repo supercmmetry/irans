@@ -3,6 +3,7 @@
 #include <rainman/rainman.h>
 #include <opencl/cl_helper.h>
 #include <multiblob.h>
+#include <backup.h>
 
 int main(int argc, const char *argv[]) {
     argparse::ArgumentParser parser(
@@ -32,6 +33,11 @@ int main(int argc, const char *argv[]) {
             .required(false);
 
     parser.add_argument()
+            .names({"-t", "--threads"})
+            .description("Number of threads to run in parallel")
+            .required(false);
+
+    parser.add_argument()
             .names({"-b", "--blobsize"})
             .description("Blob size for codec operations")
             .required(false);
@@ -43,12 +49,12 @@ int main(int argc, const char *argv[]) {
 
     parser.add_argument()
             .names({"-i", "--input"})
-            .description("Path for input file")
+            .description("Path for input file/dir")
             .required(false);
 
     parser.add_argument()
             .names({"-o", "--output"})
-            .description("Path for output file")
+            .description("Path for output file/dir")
             .required(false);
 
     parser.add_argument()
@@ -59,6 +65,16 @@ int main(int argc, const char *argv[]) {
     parser.add_argument()
             .names({"-l", "--listdevices"})
             .description("List all available OpenCL devices")
+            .required(false);
+
+    parser.add_argument()
+            .names({"--backup"})
+            .description("Compress and backup a directory")
+            .required(false);
+
+    parser.add_argument()
+            .names({"--restore"})
+            .description("Decompress and restore a directory")
             .required(false);
 
     parser.enable_help();
@@ -82,10 +98,11 @@ int main(int argc, const char *argv[]) {
     bool verbose = parser.exists("v");
     std::string executor = "cpu";
     std::string mode = "x";
-    std::string input_file;
-    std::string output_file;
+    std::string input;
+    std::string output;
     std::string preferred_device;
     uint64_t jobs = 64;
+    uint64_t threads = 1;
     uint64_t blob_size = 104857600;
     uint64_t max_mem = 1073741824;
 
@@ -96,16 +113,19 @@ int main(int argc, const char *argv[]) {
         mode = parser.get<std::string>("m");
     }
     if (parser.exists("i")) {
-        input_file = parser.get<std::string>("i");
+        input = parser.get<std::string>("i");
     }
     if (parser.exists("o")) {
-        output_file = parser.get<std::string>("o");
+        output = parser.get<std::string>("o");
     }
     if (parser.exists("P")) {
         preferred_device = parser.get<std::string>("P");
     }
     if (parser.exists("j")) {
         jobs = parser.get<uint64_t>("j");
+    }
+    if (parser.exists("t")) {
+        threads = parser.get<uint64_t>("t");
     }
     if (parser.exists("b")) {
         blob_size = parser.get<uint64_t>("b");
@@ -128,22 +148,32 @@ int main(int argc, const char *argv[]) {
     // Set opencl preferred device.
     interlaced_ans::opencl::DeviceProvider::set_preferred_device(preferred_device);
 
+    if (input.empty()) {
+        std::cerr << "Source file/dir not provided" << std::endl;
+        return 1;
+    }
+
+    if (output.empty()) {
+        std::cerr << "Destination file/dir not provided" << std::endl;
+        return 1;
+    }
+
+    if (parser.exists("backup")) {
+        auto backup = interlaced_ans::Backup(threads, jobs);
+        backup.backup(input, output);
+        return 0;
+    } else if (parser.exists("restore")) {
+        auto backup = interlaced_ans::Backup(threads, jobs);
+        backup.restore(input, output);
+        return 0;
+    }
+
     auto codec = interlaced_ans::MultiBlobCodec(jobs, blob_size, verbose);
 
-    if (input_file.empty()) {
-        std::cerr << "Source file not provided" << std::endl;
-        return 1;
-    }
-
-    if (output_file.empty()) {
-        std::cerr << "Destination file not provided" << std::endl;
-        return 1;
-    }
-
     if (mode == "c") {
-        codec.compress_file(input_file, output_file);
+        codec.compress_file(input, output);
     } else if (mode == "d") {
-        codec.decompress_file(input_file, output_file);
+        codec.decompress_file(input, output);
     } else {
         std::cerr << "Invalid mode. Choose either 'c' for compression or 'd' for decompression." << std::endl;
         return 1;

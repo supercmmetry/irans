@@ -20,7 +20,15 @@ add_executable(irans
         src/io/writer.h
         src/io/writer.cpp
         src/io/reader.h
-        src/io/reader.cpp src/multiblob.h src/multiblob.cpp src/errors/base.h)
+        src/io/reader.cpp
+        src/multiblob.h
+        src/multiblob.cpp
+        src/errors/base.h
+        src/backup.h
+        src/backup.cpp
+        src/utils/semaphore.h
+        src/utils/semaphore.cpp)
 
-target_link_libraries(irans PUBLIC argparse rainman OpenCL)
+target_link_libraries(irans PUBLIC pthread OpenCL)
+target_link_libraries(irans PUBLIC argparse rainman)
 target_compile_definitions(irans PUBLIC CL_HPP_ENABLE_EXCEPTIONS)

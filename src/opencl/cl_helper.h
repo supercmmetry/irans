@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <mutex>
-#include <CL/cl2.hpp>
+#include <CL/opencl.hpp>
 #include <errors/opencl.h>
 #include <iostream>
 
