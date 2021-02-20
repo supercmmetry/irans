@@ -102,7 +102,6 @@ int main(int argc, const char *argv[]) {
     std::string output;
     std::string preferred_device;
     uint64_t jobs = 64;
-    uint64_t threads = 1;
     uint64_t blob_size = 104857600;
     uint64_t max_mem = 1073741824;
 
@@ -123,9 +122,6 @@ int main(int argc, const char *argv[]) {
     }
     if (parser.exists("j")) {
         jobs = parser.get<uint64_t>("j");
-    }
-    if (parser.exists("t")) {
-        threads = parser.get<uint64_t>("t");
     }
     if (parser.exists("b")) {
         blob_size = parser.get<uint64_t>("b");
@@ -159,11 +155,11 @@ int main(int argc, const char *argv[]) {
     }
 
     if (parser.exists("backup")) {
-        auto backup = interlaced_ans::Backup(threads, jobs, blob_size);
+        auto backup = interlaced_ans::Backup(jobs, blob_size);
         backup.backup(input, output);
         return 0;
     } else if (parser.exists("restore")) {
-        auto backup = interlaced_ans::Backup(threads, jobs, blob_size);
+        auto backup = interlaced_ans::Backup(jobs, blob_size);
         backup.restore(input, output);
         return 0;
     }
