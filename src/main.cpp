@@ -159,11 +159,11 @@ int main(int argc, const char *argv[]) {
     }
 
     if (parser.exists("backup")) {
-        auto backup = interlaced_ans::Backup(threads, jobs);
+        auto backup = interlaced_ans::Backup(threads, jobs, blob_size);
         backup.backup(input, output);
         return 0;
     } else if (parser.exists("restore")) {
-        auto backup = interlaced_ans::Backup(threads, jobs);
+        auto backup = interlaced_ans::Backup(threads, jobs, blob_size);
         backup.restore(input, output);
         return 0;
     }

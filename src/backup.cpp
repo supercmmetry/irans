@@ -62,20 +62,23 @@ void interlaced_ans::Backup::backup(const std::string &source_dir, const std::st
             // Optimize kernel count at 10KB per kernel.
             uint64_t file_size = std::filesystem::file_size(source_path);
             uint64_t blob_size = std::min((uint64_t) INTERLACED_ANS_DEFAULT_BLOB_SIZE, file_size);
+            uint64_t estimated_kernel_count = file_size / 10240;
+            uint64_t adaptive_kernel_count;
 
             {
                 std::unique_lock<std::mutex> lk(mutex);
                 _cv.wait(lk, [this, &total_size, blob_size]() {
                     return total_size + blob_size < _max_blob_size;
                 });
+
+                total_size += blob_size;
+                adaptive_kernel_count = std::max(((_max_blob_size - total_size) / _max_blob_size) * _max_kernels,
+                                                 _max_kernels / _n_threads);
             }
 
-            total_size += blob_size;
+            uint64_t kernel_count = 1 + std::min(estimated_kernel_count, adaptive_kernel_count);
 
-            uint64_t estimated_kernel_count = file_size / 10240;
-            uint64_t kernel_count = 1 + std::min(estimated_kernel_count, _max_kernels / _n_threads);
-
-            auto codec = MultiBlobCodec(kernel_count);
+            auto codec = MultiBlobCodec(kernel_count, _max_blob_size);
             codec.compress_file(source_path, destination_path);
 
             total_size -= file_size;
@@ -132,18 +135,25 @@ void interlaced_ans::Backup::restore(const std::string &source_dir, const std::s
 
             // Optimize kernel count at 10KB per kernel.
             uint64_t file_size = std::filesystem::file_size(source_path);
-            uint64_t estimated_kernel_count = file_size / 10240;
-            uint64_t kernel_count = 1 + std::min(estimated_kernel_count, _max_kernels / _n_threads);
             uint64_t blob_size = std::min((uint64_t) INTERLACED_ANS_DEFAULT_BLOB_SIZE, file_size);
+            uint64_t estimated_kernel_count = file_size / 10240;
+            uint64_t adaptive_kernel_count;
 
             {
                 std::unique_lock<std::mutex> lk(mutex);
                 _cv.wait(lk, [this, &total_size, blob_size]() {
                     return total_size + blob_size < _max_blob_size;
                 });
+
+                total_size += blob_size;
+                adaptive_kernel_count = std::max(((_max_blob_size - total_size) / _max_blob_size) * _max_kernels,
+                                                 _max_kernels / _n_threads);
             }
 
-            auto codec = MultiBlobCodec(kernel_count);
+
+            uint64_t kernel_count = 1 + std::min(estimated_kernel_count, adaptive_kernel_count);
+
+            auto codec = MultiBlobCodec(kernel_count, _max_blob_size);
             codec.decompress_file(source_path, destination_path);
 
             total_size -= file_size;
