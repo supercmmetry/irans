@@ -29,6 +29,6 @@ add_executable(irans
         src/utils/semaphore.h
         src/utils/semaphore.cpp)
 
-target_link_libraries(irans PUBLIC pthread OpenCL)
+target_link_libraries(irans PUBLIC pthread OpenCL crypto)
 target_link_libraries(irans PUBLIC argparse rainman)
 target_compile_definitions(irans PUBLIC CL_HPP_ENABLE_EXCEPTIONS)

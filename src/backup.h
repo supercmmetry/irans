@@ -17,6 +17,10 @@ namespace interlaced_ans {
 
         static std::string remove_irans_ext(const std::string &path);
 
+        static std::string hash_file(const std::string &file_path);
+
+        static std::string hash_string(const std::string &str);
+
     public:
         Backup(uint64_t max_kernels, uint64_t max_blob_size = INTERLACED_ANS_DEFAULT_BLOB_SIZE);
 
